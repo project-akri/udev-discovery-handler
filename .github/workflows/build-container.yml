@@ -1,0 +1,64 @@
+name: Build and Push Production Udev Discovery Handler Container
+
+on:
+  push:
+    branches: [ main ]
+    paths:
+    - .github/workflows/build-rust-code.yml
+    - build/Dockerfile.rust
+    - '**.rs'
+    - '**/Cargo.toml'
+    - '**/Cargo.lock'
+    - version.txt
+  release:
+    types:
+      - published
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    timeout-minutes: 50
+    env:
+      AKRI_COMPONENT: "udev-discovery-handler"
+    
+    steps:
+    - name: Checkout the head commit of the branch
+      uses: actions/checkout@v3
+      with:
+        persist-credentials: false
+      
+    - name: Get discovery handler version
+      id: version-string
+      run: |
+        echo "version=$(cat version.txt)" >> $GITHUB_OUTPUT
+
+    - name: Set up QEMU
+      uses: docker/setup-qemu-action@v3
+    - name: Set up Docker Buildx
+      uses: docker/setup-buildx-action@v3
+
+    - name: Docker meta
+      uses: docker/metadata-action@v5
+      id: meta
+      with:
+        images: ghcr.io/project-akri/akri/${{ env.AKRI_COMPONENT }}
+        labels: |
+          org.opencontainers.image.title=akri-${{env.AKRI_COMPONENT}}
+        tags: |
+          type=ref,event=pr
+          type=semver,pattern={{version}}
+          type=semver,pattern={{major}}.{{minor}}
+          type=raw,value=${{steps.version-string.outputs.version}},enable=${{github.event_name != 'release'}}
+
+    - name: Build and push
+      uses: docker/build-push-action@v5
+      with:
+        context: .
+        push: ${{ github.event_name != 'pull_request' }}
+        build-args: |
+          AKRI_COMPONENT=${{env.AKRI_COMPONENT}}
+          EXTRA_CARGO_ARGS=--release
+        tags: ${{ steps.meta.outputs.tags }}
+        labels: ${{ steps.meta.outputs.labels }}
+        file: build/Dockerfile.rust
+        platforms: linux/amd64,linux/arm64,linux/arm/v7

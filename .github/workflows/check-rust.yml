@@ -1,0 +1,55 @@
+name: Check Rust
+
+on:
+  push:
+    branches: [ main ]
+    paths:
+    - .github/workflows/check-rust.yml
+    - '**.rs'
+    - '**/Cargo.toml'
+    - '**/Cargo.lock'
+  pull_request:
+    branches: [ main ]
+    paths:
+    - .github/workflows/check-rust.yml
+    - '**.rs'
+    - '**/Cargo.toml'
+    - '**/Cargo.lock'
+
+env:
+  CARGO_TERM_COLOR: always
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+
+    steps:
+    - name: Checkout the head commit of the branch
+      uses: actions/checkout@v3
+      with:
+        persist-credentials: false
+
+    - name: Rust install
+      uses: dtolnay/rust-toolchain@master
+      with:
+        toolchain: 1.68.1
+        components: clippy, rustfmt
+    - name: Install Linux requirements
+      run: |
+        apt_dependencies="git curl libssl-dev pkg-config libudev-dev"
+        echo "Run apt update and apt install the following dependencies: $apt_dependencies"
+        sudo apt update
+        sudo apt install -y $apt_dependencies
+    - name: Check rust format
+      run: cargo fmt --all -- --check
+    - name: Check clippy
+      run: cargo clippy --all
+    - name: Check clippy for tests
+      run: cargo clippy --all-targets --all-features -- -D warnings -A clippy::derive_partial_eq_without_eq
+    - name: Run check
+      run:  cargo check
+    - name: Run tests
+      run: cargo test --workspace
+    - name: Run doc
+      run: export RUSTDOCFLAGS="-Dwarnings" && cargo doc --no-deps
