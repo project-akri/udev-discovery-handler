@@ -1,0 +1,29 @@
+[package]
+name = "akri-udev"
+version = { workspace = true }
+license = { workspace = true }
+authors = { workspace = true }
+edition = { workspace = true }
+rust-version = { workspace = true }
+
+# See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
+
+[dependencies]
+akri-discovery-utils = { git = "https://github.com/project-akri/akri/", tag = "v0.12.9" }
+anyhow = "1.0.38"
+async-trait = "0.1.0"
+log = "0.4"
+pest = "2.0"
+pest_derive = "2.0"
+regex = "1"
+serde = "1.0.104"
+serde_derive = "1.0.104"
+tokio = { version = "1.0", features = ["time", "net", "sync"] }
+tokio-stream = { version =  "0.1", features = ["net"] }
+tonic = { version = "0.5.2", features = ["tls"] }
+udev = "0.5"
+
+[dev-dependencies]
+env_logger = "0.10.0"
+mockall = "0.10.2"
+serde_json = "1.0.45"
